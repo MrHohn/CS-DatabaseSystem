@@ -253,6 +253,7 @@ public class HeapPage implements Page {
         int count = 0;
         int maxBit = 32;
 
+        // count the unfill bits
         for (int i = 0; i <= total; ++i) {
             // stop at the last exist bit for the last loop
             if (i == total) {
@@ -261,7 +262,7 @@ public class HeapPage implements Page {
             // get the current header byte
             int n = header[i];
             for (int j = 0; j < maxBit; ++j) {
-                if ((n & 1) == 1) {
+                if ((n & 1) == 0) {
                     ++count;
                 }
                 n  = n >> 1;
