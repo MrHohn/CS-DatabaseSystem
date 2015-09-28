@@ -23,6 +23,9 @@ public class BufferPool {
     int _numhits=0;
     int _nummisses=0;
     
+    // max num of page
+    private int maxPages;
+    private Page currentPage = null;
 
     /**
      * Constructor.
@@ -31,6 +34,7 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         //IMPLEMENT THIS
+        maxPages = numPages;
     }
 
   
@@ -51,9 +55,12 @@ public class BufferPool {
      */
     public synchronized Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException, IOException {
-	//IMPLEMENT THIS
-	return null;
-}
+        //IMPLEMENT THIS
+
+        // read a page from a DbFile(HeapFile)
+        currentPage = Database.getCatalog().getDbFile(pid.tableid()).readPage(pid);
+        return currentPage;
+    }
 
     /**
      * Releases the lock on a page.
