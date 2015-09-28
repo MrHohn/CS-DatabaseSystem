@@ -245,14 +245,56 @@ public class HeapPage implements Page {
      */
     public int getNumEmptySlots() {
         //IMPLEMENT THIS
-	return 0;
+
+        // calculate the position of the last slot
+        int total = numSlots / 32;
+        int shift = numSlots % 32;
+
+        int count = 0;
+        int maxBit = 32;
+
+        for (int i = 0; i <= total; ++i) {
+            // stop at the last exist bit for the last loop
+            if (i == total) {
+                maxBit = shift;
+            }
+            // get the current header byte
+            int n = header[i];
+            for (int j = 0; j < maxBit; ++j) {
+                if ((n & 1) == 1) {
+                    ++count;
+                }
+                n  = n >> 1;
+            }
+        }
+
+        return count;
     }
     /**
      * Returns true if associated slot on this page is filled.
      */
     public boolean getSlot(int i) {
-	//IMPLEMENT THIS
-	     return false;
+	    //IMPLEMENT THIS
+
+        // if non-existing slot is asked, return false;
+        if (i >= numSlots || i < 0) {
+            return false;
+        }
+
+        // calculate the position of this slot
+        int pos = i / 32;
+        int shift = i % 32;
+
+        // check validity bit
+        int current = header[pos];
+        current = ((current << shift) & 1);
+        // if filled, return true
+        if (current == 1) {
+            return true;
+        }
+        else {
+    	    return false;
+        }
 	}
         
 
@@ -261,8 +303,29 @@ public class HeapPage implements Page {
      * Abstraction to fill a slot on this page.
      */
     private void setSlot(int i, boolean value) {
-	//IMPLEMENT THIS
+    	//IMPLEMENT THIS
 
+        // if non-existing slot is asked, return;
+        if (i >= numSlots || i < 0) {
+            return;
+        }
+
+        // calculate the position of this slot
+        int pos = i / 32;
+        int shift = i % 32;
+
+        int bit = (1 << shift);
+
+        // if value is true, set bit to 1
+        if (value) {
+            header[pos] |= bit;
+        }
+        // otherwise set to 0
+        else {
+            //  make negation first
+            bit = ~bit; 
+            header[pos] &= bit;
+        }
     }
 
     /**
