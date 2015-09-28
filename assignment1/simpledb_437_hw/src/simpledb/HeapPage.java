@@ -40,21 +40,21 @@ public class HeapPage implements Page {
         this.td = Database.getCatalog().getTupleDesc(id.tableid());
         //this.numSlots = (BufferPool.PAGE_SIZE) / (td.getSize());
         this.numSlots = (BufferPool.PAGE_SIZE*8) / ((td.getSize()*8)+1);
-	//System.out.println(this.numSlots);
+        //System.out.println(this.numSlots);
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
 
         // allocate and read the header slots of this page
-	header = new int[(numSlots/32)+1];
+        header = new int[(numSlots/32)+1];
         for (int i=0; i<header.length; i++){
 	       header[i] = dis.readInt();
 	       //     	       System.out.println("HEADER READ["+i+"]="+header[i]);
-	}
+        }
         try{
             // allocate and read the actual records of this page
             tuples = new Tuple[numSlots];
             for (int i=0; i<numSlots; i++){
                 tuples[i] = readNextTuple(dis,i);
-	    }
+            }
         }catch(NoSuchElementException e){
             //e.printStackTrace();
         }
@@ -288,7 +288,7 @@ public class HeapPage implements Page {
 
         // check validity bit
         int current = header[pos];
-        current = ((current << shift) & 1);
+        current = ((current >> shift) & 1);
         // if filled, return true
         if (current == 1) {
             return true;
