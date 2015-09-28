@@ -1,6 +1,8 @@
 package simpledb;
 
 import java.io.*;
+import java.util.HashMap;
+// import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -23,9 +25,10 @@ public class BufferPool {
     int _numhits=0;
     int _nummisses=0;
     
-    // max num of page
+    // max num for pages
     private int maxPages;
-    private Page currentPage = null;
+    // real pool, store page contents along with PageIds
+    private Cache pool;
 
     /**
      * Constructor.
@@ -35,9 +38,108 @@ public class BufferPool {
     public BufferPool(int numPages) {
         //IMPLEMENT THIS
         maxPages = numPages;
+        pool = new Cache(numPages);
     }
 
-  
+    // Class for pool cache, constructed by double linked list and HashMap
+    public class Cache {
+        // double linked list to store page content
+        // achieved in O(1) time complexity
+        public class Node {
+            // use PageId as the key
+            private PageId key = null;
+            // use page content as the value
+            private Page val;
+            private Node next = null, prev = null;
+
+            public Node(Page value, PageId k) {
+                val = value;
+                key = k;
+            }
+
+            public PageId getKey() {
+                return key;
+            }
+
+            // remove current node
+            public void remove() {
+                prev.next = next;
+                next.prev = prev;
+            }
+
+            // put current node before a specific node
+            public void putBefore(Node h) {
+                next = h;
+                prev = h.prev;
+                prev.next = this;
+                h.prev = this;
+            }
+        }
+        
+        private Node headDum = new Node(null, null), tailDum = new Node(null, null);
+        private int cap;
+        // since synchronized funcions are already used
+        // hence no need to use Concurrent version
+        private HashMap<PageId, Node> map = new HashMap<PageId, Node>();
+
+        public Cache(int capacity) {
+            cap = capacity;
+            headDum.next = tailDum;
+            tailDum.prev = headDum;
+        }
+        
+        public Page get(PageId key) {
+            if (map.containsKey(key)) {
+                Node cur = map.get(key);
+                // disconnect it first
+                cur.remove();
+                // move to the head as the newest element
+                cur.putBefore(headDum.next);
+                return cur.val;
+            }
+            else {
+                return null;
+            }
+        }
+
+        public void add(PageId key, Page value) {
+            //create new node and set up the key and value
+            Node cur = new Node(value, key);
+            // move to the head as the newest element
+            cur.putBefore(headDum.next);
+            // at last, put the new node into map
+            map.put(key, cur);
+        }
+
+        // evict least recently used node
+        public void evictLast() {
+            // remove the oldest one, which is the tail
+            // remove the key from map
+            map.remove(tailDum.prev.getKey());
+            // delete the node from list
+            tailDum.prev.remove();
+        }
+
+        // evict most recently used node
+        public void evictFirst() {
+            // remove the newest one, which is the head
+            // remove the key from map
+            map.remove(headDum.next.getKey());
+            // delete the node from list
+            headDum.next.remove();
+        }
+
+        // get current size of the cache
+        public int getSize() {
+            return map.size();
+        }
+
+        // check if cache contains a PageId
+        public boolean contains(PageId key) {
+            return map.containsKey(key);
+        }
+    }
+
     /**
      * Retrieve the specified page with the associated permissions.
      * Will acquire a lock and may block if that lock is held by another
@@ -57,9 +159,27 @@ public class BufferPool {
         throws TransactionAbortedException, DbException, IOException {
         //IMPLEMENT THIS
 
-        // read a page from a DbFile(HeapFile)
-        currentPage = Database.getCatalog().getDbFile(pid.tableid()).readPage(pid);
-        return currentPage;
+        // check whether the requesting page is in pool
+        if (pool.contains(pid)) {
+            _numhits++;
+            return pool.get(pid);
+        }
+        // not exist, read it from the disk and put it into cache
+        else {
+            _nummisses++;
+            // read a page from a DbFile(HeapFile)
+            Page currentPage = Database.getCatalog().getDbFile(pid.tableid()).readPage(pid);
+
+            // if pool is full, evict one first
+            if (pool.getSize() >= maxPages) {
+                evictPage();
+            }
+
+            // put the new page into pool
+            pool.add(pid, currentPage);
+
+            return currentPage;   
+        }
     }
 
     /**
@@ -168,8 +288,20 @@ public class BufferPool {
      * Discards a page from the buffer pool. Return index of discarded page
      */
     private  synchronized int evictPage() throws DbException {
-	//IMPLEMENT THIS
-	return 0;
+	   //IMPLEMENT THIS
+
+        switch (replace_policy) {
+            case DEFAULT_POLICY:
+            case LRU_POLICY:
+                pool.evictLast();
+                break;
+
+            case MRU_POLICY:
+                pool.evictFirst();
+                break;
+        }
+
+    	return 0;
     }
 
     public int getNumHits(){
