@@ -1,7 +1,7 @@
 package simpledb;
 
 import java.io.*;
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 // import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -51,6 +51,9 @@ public class BufferPool {
             // use page content as the value
             private Page val;
             private Node next = null, prev = null;
+            // pinCount is not used in this assignment
+            // because the test program never release page
+            private int pinCount = 0;
 
             public Node(Page value, PageId k) {
                 val = value;
@@ -78,9 +81,10 @@ public class BufferPool {
         
         private Node headDum = new Node(null, null), tailDum = new Node(null, null);
         private int cap;
-        // since synchronized funcions are already used
-        // hence no need to use Concurrent version
-        private HashMap<PageId, Node> map = new HashMap<PageId, Node>();
+        // though synchronized funcions are already used
+        // there might be multiple functions trying to access this hash map
+        // hence use Concurrent version
+        private ConcurrentHashMap<PageId, Node> map = new ConcurrentHashMap<PageId, Node>();
 
         public Cache(int capacity) {
             cap = capacity;
@@ -111,22 +115,26 @@ public class BufferPool {
             map.put(key, cur);
         }
 
-        // evict least recently used node
-        public void evictLast() {
+        // evict least recently used node and return its PageId
+        public PageId evictLast() {
             // remove the oldest one, which is the tail
             // remove the key from map
-            map.remove(tailDum.prev.getKey());
+            PageId removedPage = tailDum.prev.getKey();
+            map.remove(removedPage);
             // delete the node from list
             tailDum.prev.remove();
+            return removedPage;
         }
 
         // evict most recently used node
-        public void evictFirst() {
+        public PageId evictFirst() {
             // remove the newest one, which is the head
             // remove the key from map
-            map.remove(headDum.next.getKey());
+            PageId removedPage = headDum.next.getKey();
+            map.remove(removedPage);
             // delete the node from list
             headDum.next.remove();
+            return removedPage;
         }
 
         // get current size of the cache
@@ -285,23 +293,25 @@ public class BufferPool {
     }
 
     /**
-     * Discards a page from the buffer pool. Return index of discarded page
+     * Discards a page from the buffer pool. Return PageId of discarded page
      */
-    private  synchronized int evictPage() throws DbException {
-	   //IMPLEMENT THIS
+    private  synchronized PageId evictPage() throws DbException {
+	    //IMPLEMENT THIS
+        
+        PageId removedPage = null;
 
         switch (replace_policy) {
             case DEFAULT_POLICY:
             case LRU_POLICY:
-                pool.evictLast();
+                removedPage = pool.evictLast();
                 break;
 
             case MRU_POLICY:
-                pool.evictFirst();
+                removedPage = pool.evictFirst();
                 break;
         }
 
-    	return 0;
+    	return removedPage;
     }
 
     public int getNumHits(){
