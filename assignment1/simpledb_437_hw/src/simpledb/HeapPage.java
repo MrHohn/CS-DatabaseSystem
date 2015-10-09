@@ -320,6 +320,7 @@ public class HeapPage implements Page {
         // if value is true, set bit to 1
         if (value) {
             header[pos] |= bit;
+            // System.out.printf("pos: %d, bit: %x\n", pos, bit);
         }
         // otherwise set to 0
         else {
@@ -327,6 +328,13 @@ public class HeapPage implements Page {
             bit = ~bit; 
             header[pos] &= bit;
         }
+    }
+
+    /**
+     * debug method to allow program to call the setSlot() from outside
+     */
+    public void setSlotTest(int i, boolean value) {
+        setSlot(i, value);
     }
 
     /**

@@ -132,10 +132,41 @@ public class HeapPageReadTest {
         HeapPage page = new HeapPage(pid, EXAMPLE_DATA);
 
         for (int i = 0; i < 20; ++i)
-	  assertTrue(page.getSlot(i));
+            assertTrue(page.getSlot(i));
 
         for (int i = 20; i < 512; ++i)
-	     assertFalse(page.getSlot(i));
+            assertFalse(page.getSlot(i));
+    }
+
+    /**
+     * Unit test for HeapPage.setSlot()
+     */
+    @Test public void setSlot() throws Exception {
+        HeapPage page = new HeapPage(pid, EXAMPLE_DATA);
+
+        // set slots true in range 20 to 503
+        // because there are only 504 slots in this sample page
+        for (int i = 20; i < 504; ++i)
+            page.setSlotTest(i, true);
+
+        for (int i = 20; i < 504; ++i) {
+            assertTrue(page.getSlot(i));
+        }
+
+        //set slots true and should still get false on non-existing slot
+        for (int i = 504; i < 512; ++i)
+            page.setSlotTest(i, true);
+
+        for (int i = 504; i < 512; ++i) {
+            assertFalse(page.getSlot(i));
+        }
+
+        // set slots false in range 0 to 19
+        for (int i = 0; i < 20; ++i)
+            page.setSlotTest(i, false);
+
+        for (int i = 0; i < 20; ++i)
+            assertFalse(page.getSlot(i));
     }
 
     /**
