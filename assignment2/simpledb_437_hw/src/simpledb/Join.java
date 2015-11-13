@@ -35,6 +35,7 @@ public class Join extends AbstractDbIterator {
      */
     public Join(JoinPredicate p, DbIterator child1, DbIterator child2) {
         //IMPLEMENT THIS
+
         _predicate = p;
         _outerRelation = child1;
         _innerRelation = child2;
@@ -48,22 +49,32 @@ public class Join extends AbstractDbIterator {
      */
     public TupleDesc getTupleDesc() {
     	//IMPLEMENT THIS
-    	return null;
+
+        // create new tupledesc
+        TupleDesc joinedTupleDesc = TupleDesc.combine(_outerRelation.getTupleDesc(), _innerRelation.getTupleDesc());
+    	return joinedTupleDesc;
     }
 
     public void open()
         throws DbException, NoSuchElementException, TransactionAbortedException, IOException {
         //IMPLEMENT THIS
 
+        _outerRelation.open();
+        _innerRelation.open();
     }
 
     public void close() {
         //IMPLEMENT THIS
 
+        _outerRelation.close();
+        _innerRelation.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException, IOException {
         //IMPLEMENT THIS
+
+        _outerRelation.rewind();
+        _innerRelation.rewind();
     }
 
     /**
@@ -96,8 +107,38 @@ public class Join extends AbstractDbIterator {
     }
 
     protected Tuple SNL_readNext() throws TransactionAbortedException, DbException {
-	//IMPLEMENT THIS 
-	return null;
+        //IMPLEMENT THIS
+        try {
+            // if first time enter
+            if (_outerRecent == null) {
+                _outerRecent = _outerRelation.next();
+            }
+
+            Tuple res = null;
+            // find next join until touch the end
+            while (res == null) {
+                // if touch the end of inner loop
+                if (!_innerRelation.hasNext()) {
+                    // rewind the inner iterator
+                    _innerRelation.rewind();
+                    // step to the next outer tuple
+                    if (!_outerRelation.hasNext()) {
+                        // if touch the end of outer loop
+                        return null;
+                    }
+                    _outerRecent = _outerRelation.next();
+                }
+
+                // now try to match
+                Tuple innerTuple = _innerRelation.next();
+                res = joinTuple(_outerRecent, innerTuple, getTupleDesc());
+            }
+            return res;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+
     }
 
 
@@ -133,17 +174,16 @@ public class Join extends AbstractDbIterator {
         // if match, return the combined tuple
         if (_predicate.filter(outer, inner)) {
             ++_numMatches;
-            // create new tupledesc
-            TupleDesc joinedTupleDesc = TupleDesc.combine(tupledesc, tupledesc);
+            TupleDesc outerDesc = outer.getTupleDesc();
+            TupleDesc innerDesc = inner.getTupleDesc();
             // create new tuple
-            Tuple joinedTuple = new Tuple(joinedTupleDesc);
+            Tuple joinedTuple = new Tuple(tupledesc);
             // set the fields
-            int numOfFieldsOrigin = tupledesc.numFields();
-            for (int i = 0; i < numOfFieldsOrigin; ++i) {
+            for (int i = 0; i < outerDesc.numFields(); ++i) {
                 joinedTuple.setField(i, outer.getField(i));
             }
-            for (int i = 0; i < numOfFieldsOrigin; ++i) {
-                joinedTuple.setField(i + numOfFieldsOrigin, inner.getField(i));
+            for (int i = 0; i < innerDesc.numFields(); ++i) {
+                joinedTuple.setField(i + outerDesc.numFields(), inner.getField(i));
             }
             return joinedTuple;
         }
