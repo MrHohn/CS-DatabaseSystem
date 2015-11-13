@@ -34,33 +34,36 @@ public class Join extends AbstractDbIterator {
      * @param child2 Iterator for the right(inner) relation to join
      */
     public Join(JoinPredicate p, DbIterator child1, DbIterator child2) {
-	//IMPLEMENT THIS
+        //IMPLEMENT THIS
+        _predicate = p;
+        _outerRelation = child1;
+        _innerRelation = child2;
     }
 
     public void setJoinAlgorithm(int joinAlgo){
-	_joinType = joinAlgo;
+	   _joinType = joinAlgo;
     }
     /**
      * @see simpledb.TupleDesc#combine(TupleDesc, TupleDesc) for possible implementation logic.
      */
     public TupleDesc getTupleDesc() {
-	//IMPLEMENT THIS
-	return null;
+    	//IMPLEMENT THIS
+    	return null;
     }
 
     public void open()
         throws DbException, NoSuchElementException, TransactionAbortedException, IOException {
-		//IMPLEMENT THIS
+        //IMPLEMENT THIS
 
     }
 
     public void close() {
-//IMPLEMENT THIS
+        //IMPLEMENT THIS
 
     }
 
     public void rewind() throws DbException, TransactionAbortedException, IOException {
-//IMPLEMENT THIS
+        //IMPLEMENT THIS
     }
 
     /**
@@ -123,8 +126,29 @@ public class Join extends AbstractDbIterator {
 
 
     private Tuple joinTuple(Tuple outer, Tuple inner, TupleDesc tupledesc){
-	//IMPLEMENT THIS
-	return null;
+        //IMPLEMENT THIS
+
+        // increment for comparison
+        ++_numComp;
+        // if match, return the combined tuple
+        if (_predicate.filter(outer, inner)) {
+            ++_numMatches;
+            // create new tupledesc
+            TupleDesc joinedTupleDesc = TupleDesc.combine(tupledesc, tupledesc);
+            // create new tuple
+            Tuple joinedTuple = new Tuple(joinedTupleDesc);
+            // set the fields
+            int numOfFieldsOrigin = tupledesc.numFields();
+            for (int i = 0; i < numOfFieldsOrigin; ++i) {
+                joinedTuple.setField(i, outer.getField(i));
+            }
+            for (int i = 0; i < numOfFieldsOrigin; ++i) {
+                joinedTuple.setField(i + numOfFieldsOrigin, inner.getField(i));
+            }
+            return joinedTuple;
+        }
+        // return null if not match
+        return null;
     }
 
     public int getNumMatches(){
