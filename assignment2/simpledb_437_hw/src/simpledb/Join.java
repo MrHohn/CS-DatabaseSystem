@@ -16,6 +16,10 @@ public class Join extends AbstractDbIterator {
     private Tuple _outerRecent = null;
     private Tuple _innerRecent = null;
 
+    // varables for SMJ
+    // store the last Tuple for duplicate detection
+    private Tuple _innerLast = null;
+
     private int _joinType = 0;
     private int _numMatches = 0;
     private int _numComp = 0;
@@ -67,6 +71,7 @@ public class Join extends AbstractDbIterator {
         _innerRecent = null;
         _numMatches = 0;
         _numComp = 0;
+        _innerLast = null;
     }
 
     public void close() {
@@ -169,7 +174,7 @@ public class Join extends AbstractDbIterator {
             }
 
             Tuple res = null;
-            while (res == null) {                
+            while (res == null) {
                 // if touch the end of a page in outer relation
                 // but not the end of inner relation
                 if (!((SeqScan)_outerRelation).moreInCurrentPage() && _innerRelation.hasNext()) {
@@ -218,9 +223,106 @@ public class Join extends AbstractDbIterator {
 	
         //IMPLEMENT THIS. YOU CAN ASSUME THE JOIN PREDICATE IS ALWAYS =
         
+        // Because we assume the input files(relations) are sorted
+        // We only present merge phase in this function
 
+        try {
+            // flag to indicate the new arrival
+            boolean newArrival = false;
+            // if first time enter
+            if (_outerRecent == null && _innerRecent == null) {
+                if (!_outerRelation.hasNext() || !_innerRelation.hasNext()) {
+                    // return null if anyone is empty
+                    return null;
+                }
+                // read the first tuples
+                _outerRecent = _outerRelation.next();
+                _innerRecent = _innerRelation.next();
+                newArrival = true;
+            }
 
-        return null;
+            Tuple res = null;
+            while (res == null) {
+                // if value in inner tuple is smaller
+                if (_predicate.getLeftField(_outerRecent).compare(Predicate.Op.GREATER_THAN, _predicate.getRightField(_innerRecent))) {
+                    // return null if reach the end
+                    if (!_innerRelation.hasNext()) {
+                        return null;
+                    }
+                    // move inner iterator
+                    _innerRecent = _innerRelation.next();
+                }
+                // if value in outer tuple is smaller
+                else if (_predicate.getLeftField(_outerRecent).compare(Predicate.Op.LESS_THAN, _predicate.getRightField(_innerRecent))) {
+                    if (!_outerRelation.hasNext()) {
+                        // return null if reach the end
+                        return null;
+                    }
+                    // move outer iterator and check if duplicate
+                    SMJ_moveOuterIterator();
+                }
+
+                // if values are the same, but not new arrival
+                if (!newArrival) {
+                    // return null if both reach the end
+                    if (!_innerRelation.hasNext() && !_outerRelation.hasNext()) {
+                        return null;
+                    }
+                    // need to move iterators
+
+                    // if inner reach the end but outer not
+                    if (!_innerRelation.hasNext()) {
+                        // move outer iterator and check if duplicate
+                        SMJ_moveOuterIterator();
+                    }
+                    // if inner not reach the end
+                    else {
+                        _innerRecent = _innerRelation.next();
+                    }                    
+                }
+                // if have the same value and new arrival, join them
+                else {
+                    res = joinTuple(_outerRecent, _innerRecent, getTupleDesc());
+                    // save current match inner tuple if needed
+                    if (_innerLast == null) {
+                        _innerLast = _innerRecent;
+                    }
+                }
+
+                newArrival = true;
+            }
+
+            return res;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private void SMJ_moveOuterIterator() throws TransactionAbortedException, DbException {
+        try {
+            // move outer iterator and check if duplicate
+            Tuple temp = _outerRecent;
+            _outerRecent = _outerRelation.next();
+            // if outer next duplicate, may need to reset inner
+            if (_predicate.getLeftField(temp).equals(_predicate.getLeftField(_outerRecent))) {
+                // if inner is duplicate, reverse it
+                if (_innerLast != null) {
+                    // reverse inner back to the first dupliate
+                    while (_innerRecent != _innerLast) {
+                        _innerRecent = ((SeqScan)_innerRelation).previous();
+                    }
+                    // remeber to call next again to reset position
+                    _innerRelation.next();
+                }
+            }
+            // otherwise erase the inner copy
+            else {
+                _innerLast = null;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     protected Tuple HJ_readNext() throws TransactionAbortedException, DbException {

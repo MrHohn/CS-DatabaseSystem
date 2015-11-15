@@ -80,6 +80,13 @@ public class Tuple {
      */
     public String toString() {
         // some code goes here
-        throw new UnsupportedOperationException("Implement this");
+        // throw new UnsupportedOperationException("Implement this");
+
+        StringBuilder res = new StringBuilder();
+        for (int i = 0; i < tupled.numFields(); ++i) {
+            res.append(tupleFields[i].toString());
+            res.append(" ");
+        }
+        return res.toString();
     }
 }
