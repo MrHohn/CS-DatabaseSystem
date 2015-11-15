@@ -112,4 +112,16 @@ public class SeqScan implements DbIterator {
     public DbFileIterator getIterator(){
 	return _iterator;
     }
+
+    // new added function for PNL join
+    // check if we've read all tuples in current page
+    public boolean moreInCurrentPage() {
+        return ((HeapFileIterator)_iterator).moreInCurrentPage();
+    }
+
+    // new added function for PNL join
+    // rewind current page iterator
+    public void rewindPageIterator() {
+        ((HeapFileIterator)_iterator).rewindPageIterator();
+    }
 }

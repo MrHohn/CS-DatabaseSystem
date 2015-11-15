@@ -118,4 +118,16 @@ public class HeapFileIterator implements DbFileIterator {
     public Page getCurrentPage(){
 	return _currentPage;
     }
+
+    // new added function for PNL join
+    // check if we've read all tuples in current page
+    public boolean moreInCurrentPage() {
+        return _tupleIterator.hasNext();
+    }
+
+    // new added function for PNL join
+    // rewind the page iterator
+    public void rewindPageIterator() {
+        ((HeapPageIterator)_tupleIterator).rewind();
+    }
 }

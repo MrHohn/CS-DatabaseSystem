@@ -10,15 +10,15 @@ public class Join extends AbstractDbIterator {
     private JoinPredicate _predicate;
     private DbIterator _outerRelation;
     private DbIterator _innerRelation;
-    private Iterator<Tuple> _outerPage=null;
-    private Iterator<Tuple> _innerPage=null;
+    // private Iterator<Tuple> _outerPage = null;
+    // private Iterator<Tuple> _innerPage = null;
 
-    private Tuple _outerRecent=null;
-    private Tuple _innerRecent=null;
+    private Tuple _outerRecent = null;
+    private Tuple _innerRecent = null;
 
     private int _joinType = 0;
-    private int _numMatches =0;
-    private int _numComp=0;
+    private int _numMatches = 0;
+    private int _numComp = 0;
   
     public static final int SNL = 0;
     public static final int PNL = 1;    
@@ -61,6 +61,12 @@ public class Join extends AbstractDbIterator {
 
         _outerRelation.open();
         _innerRelation.open();
+        // _outerPage = null;
+        // _innerPage = null;
+        _outerRecent = null;
+        _innerRecent = null;
+        _numMatches = 0;
+        _numComp = 0;
     }
 
     public void close() {
@@ -108,14 +114,20 @@ public class Join extends AbstractDbIterator {
 
     protected Tuple SNL_readNext() throws TransactionAbortedException, DbException {
         //IMPLEMENT THIS
+
         try {
             // if first time enter
             if (_outerRecent == null) {
+                // read the first outer tuple
+                if (!_outerRelation.hasNext()) {
+                    // return null if the relation is empty
+                    return null;
+                }
                 _outerRecent = _outerRelation.next();
             }
 
             Tuple res = null;
-            // find next join until touch the end
+            // find next joined tuple until touch the end
             while (res == null) {
                 // if touch the end of inner loop
                 if (!_innerRelation.hasNext()) {
@@ -130,21 +142,69 @@ public class Join extends AbstractDbIterator {
                 }
 
                 // now try to match
-                Tuple innerTuple = _innerRelation.next();
-                res = joinTuple(_outerRecent, innerTuple, getTupleDesc());
+                _innerRecent = _innerRelation.next();
+                res = joinTuple(_outerRecent, _innerRecent, getTupleDesc());
             }
+
             return res;
         } catch (IOException e) {
             e.printStackTrace();
             return null;
         }
-
     }
 
 
     protected Tuple PNL_readNext() throws TransactionAbortedException, DbException {
-	//IMPLEMENT THIS (EXTRA CREDIT ONLY)
-	return null;
+        //IMPLEMENT THIS (EXTRA CREDIT ONLY)
+
+        try {
+            // if first time enter
+            if (_outerRecent == null && _innerRecent == null) {
+                // return null if anyone is empty
+                if (!_outerRelation.hasNext() || !_innerRelation.hasNext()) {
+                    return null;
+                }
+                // read the first inner tuple
+                _innerRecent = _innerRelation.next();
+            }
+
+            Tuple res = null;
+            while (res == null) {                
+                // if touch the end of a page in outer relation
+                // but not the end of inner relation
+                if (!((SeqScan)_outerRelation).moreInCurrentPage() && _innerRelation.hasNext()) {
+                    // rewind the page iterator for outer loop
+                    ((SeqScan)_outerRelation).rewindPageIterator();
+                    // read the next inner tuple
+                    _innerRecent = _innerRelation.next();
+                }
+                // if touch the end of a page in outer relation
+                // also the end of inner relation
+                // but not the end of outer relation
+                else if (!((SeqScan)_outerRelation).moreInCurrentPage() && !_innerRelation.hasNext() && _outerRelation.hasNext()) {
+                    // rewind the inner iterator
+                    _innerRelation.rewind();
+                    // re-read the first inner tuple
+                    _innerRecent = _innerRelation.next();
+                }
+                // if touch the end of a page in outer relation
+                // also the end of inner relation
+                // also the end of outer relation
+                else if (!((SeqScan)_outerRelation).moreInCurrentPage() && !_innerRelation.hasNext() && !_outerRelation.hasNext()) {
+                    // join finished, return null
+                    return null;
+                }
+
+                // now try to match
+                _outerRecent = _outerRelation.next();
+                res = joinTuple(_outerRecent, _innerRecent, getTupleDesc());
+            }
+
+            return res;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
 
