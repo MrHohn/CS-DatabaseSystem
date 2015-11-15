@@ -309,11 +309,15 @@ public class Join extends AbstractDbIterator {
                 // if inner is duplicate, reverse it
                 if (_innerLast != null) {
                     // reverse inner back to the first dupliate
+                    boolean calledPrevious = false;
                     while (_innerRecent != _innerLast) {
                         _innerRecent = ((SeqScan)_innerRelation).previous();
+                        calledPrevious = true;
                     }
-                    // remeber to call next again to reset position
-                    _innerRelation.next();
+                    if (calledPrevious) {
+                        // remeber to call next again to reset position
+                        _innerRelation.next();
+                    }
                 }
             }
             // otherwise erase the inner copy
