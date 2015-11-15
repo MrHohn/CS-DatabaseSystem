@@ -16,7 +16,7 @@ public class Join extends AbstractDbIterator {
     private Tuple _outerRecent = null;
     private Tuple _innerRecent = null;
 
-    // varables for SMJ
+    // varable for SMJ
     // store the last Tuple for duplicate detection
     private Tuple _innerLast = null;
 
@@ -306,9 +306,8 @@ public class Join extends AbstractDbIterator {
             _outerRecent = _outerRelation.next();
             // if outer next duplicate, may need to reset inner
             if (_predicate.getLeftField(temp).equals(_predicate.getLeftField(_outerRecent))) {
-                // if inner is duplicate, reverse it
                 if (_innerLast != null) {
-                    // reverse inner back to the first dupliate
+                    // reverse inner back to last matched
                     boolean calledPrevious = false;
                     while (_innerRecent != _innerLast) {
                         _innerRecent = ((SeqScan)_innerRelation).previous();
