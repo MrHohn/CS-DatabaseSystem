@@ -117,10 +117,10 @@ public class Join extends AbstractDbIterator {
 
         try {
             // if first time enter
-            if (_outerRecent == null) {
+            if (_outerRecent == null && _innerRecent == null) {
                 // read the first outer tuple
-                if (!_outerRelation.hasNext()) {
-                    // return null if the relation is empty
+                if (!_outerRelation.hasNext() || !_innerRelation.hasNext()) {
+                    // return null if anyone is empty
                     return null;
                 }
                 _outerRecent = _outerRelation.next();
@@ -131,13 +131,13 @@ public class Join extends AbstractDbIterator {
             while (res == null) {
                 // if touch the end of inner loop
                 if (!_innerRelation.hasNext()) {
+                    // if touch the end of outer loop
+                    if (!_outerRelation.hasNext()) {
+                        return null;
+                    }
                     // rewind the inner iterator
                     _innerRelation.rewind();
                     // step to the next outer tuple
-                    if (!_outerRelation.hasNext()) {
-                        // if touch the end of outer loop
-                        return null;
-                    }
                     _outerRecent = _outerRelation.next();
                 }
 
@@ -216,8 +216,11 @@ public class Join extends AbstractDbIterator {
 
     protected Tuple SMJ_readNext() throws TransactionAbortedException, DbException {
 	
-	//IMPLEMENT THIS. YOU CAN ASSUME THE JOIN PREDICATE IS ALWAYS =
-	return null;
+        //IMPLEMENT THIS. YOU CAN ASSUME THE JOIN PREDICATE IS ALWAYS =
+        
+
+
+        return null;
     }
 
     protected Tuple HJ_readNext() throws TransactionAbortedException, DbException {
