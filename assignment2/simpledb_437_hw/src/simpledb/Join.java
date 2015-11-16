@@ -243,6 +243,10 @@ public class Join extends AbstractDbIterator {
 
             Tuple res = null;
             while (res == null) {
+                // check null to fix bug
+                if (_outerRecent == null || _innerRecent == null) {
+                    return null;
+                }
                 // if value in inner tuple is smaller
                 if (_predicate.getLeftField(_outerRecent).compare(Predicate.Op.GREATER_THAN, _predicate.getRightField(_innerRecent))) {
                     // return null if reach the end
@@ -339,6 +343,10 @@ public class Join extends AbstractDbIterator {
 
         // increment for comparison
         ++_numComp;
+        // check null to fix bug
+        if (outer == null || inner == null) {
+            return null;
+        }
         // if match, return the combined tuple
         if (_predicate.filter(outer, inner)) {
             ++_numMatches;
