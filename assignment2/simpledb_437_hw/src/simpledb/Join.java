@@ -224,7 +224,7 @@ public class Join extends AbstractDbIterator {
         //IMPLEMENT THIS. YOU CAN ASSUME THE JOIN PREDICATE IS ALWAYS =
         
         // Because we assume the input files(relations) are sorted
-        // We only present merge phase in this function
+        // I only present merge phase in this function
 
         try {
             // flag to indicate the new arrival
@@ -273,7 +273,6 @@ public class Join extends AbstractDbIterator {
                         return null;
                     }
                     // need to move iterators
-
                     // if inner reach the end but outer not
                     if (!_innerRelation.hasNext()) {
                         // move outer iterator and check if duplicate
@@ -318,7 +317,7 @@ public class Join extends AbstractDbIterator {
                         calledPrevious = true;
                     }
                     if (calledPrevious) {
-                        // remeber to call next again to reset position
+                        // remeber to call next again to reset direction
                         _innerRelation.next();
                     }
                 }
