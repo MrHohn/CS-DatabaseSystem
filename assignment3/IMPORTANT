@@ -1,0 +1,42 @@
+To make your bucket accessible for me to access (and therefore grade) your results, you must follow these steps:
+
+In the S3 console, go to Services->S3.
+
+For EACH bucket you want me to access:
+
+1. Select the bucket. Click on the Properties tab on the upper right corner of the screen. A menu will appear on the right side of the screen.
+
+2. Click on Permissions -> Add more permissions. Add two new permission, one with the grantee "cyramel@gmail.com" and the "List" permission checked, and one with the grantee "re166@rutgers.edu" and the "List" permission checked.
+
+2. Click on Permissions -> Add bucket policy
+Paste the following policy (*** replace <your_bucket_name> with the name of your bucket. Make sure there are no typos ***):
+
+-------------------------------------
+
+{
+	"Version": "2008-10-17",
+	"Statement": [
+		{
+			"Sid": "AllowAmelieToRead",
+			"Effect": "Allow",
+			"Principal": {
+				"AWS": "arn:aws:iam::880387136363:root"
+			},
+			"Action": "s3:GetObject",
+			"Resource": "arn:aws:s3:::<your_bucket_name>/*"
+		},
+		{
+			"Sid": "AllowRihamToRead",
+			"Effect": "Allow",
+			"Principal": {
+				"AWS": "arn:aws:iam::710374580051:root"
+			},
+			"Action": "s3:GetObject",
+			"Resource": "arn:aws:s3:::<your_bucket_name>/*"
+		}
+	]
+}
+
+------------------------------------------
+
+3. In your submission, **clearly identify** the buckets you want us to access.
