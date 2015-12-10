@@ -6,8 +6,8 @@ start)
 	echo "--- done ---"
 	;;
 stop)
-    echo "--- now stop the hadoop ---"
-    stop-dfs.sh
+	echo "--- now stop the hadoop ---"
+	stop-dfs.sh
 	stop-yarn.sh
 	echo "--- done ---"
 	;;

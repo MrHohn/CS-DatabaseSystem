@@ -1,4 +1,4 @@
-PROJECT_DIR    = /user/$(USER)/chessA/
+PROJECT_DIR    = /user/$(USER)/chessC/
 INPUT_DIR      = $(PROJECT_DIR)/input
 OUTPUT_DIR     = $(PROJECT_DIR)/output
 CLASSPATH      = $(shell hadoop classpath)
@@ -8,11 +8,11 @@ default: clean
 	mkdir -p classes
 	javac -classpath $(CLASSPATH) -Xlint:deprecation \
  	      -d classes *.java
-	jar -cvf chessA.jar -C classes .
+	jar -cvf chessC.jar -C classes .
 	@echo "--- done ---"
 
-run: chessA.jar input
-	hadoop jar chessA.jar ChessA $(INPUT_DIR) $(OUTPUT_DIR)
+run: chessC.jar input
+	hadoop jar chessC.jar ChessC $(INPUT_DIR) $(OUTPUT_DIR)
 
 cat: 
 	hdfs dfs -cat $(OUTPUT_DIR)/*
