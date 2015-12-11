@@ -17,7 +17,9 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class ChessB {
 
-  public static class ChessResultMapper
+  // first map-reduce classes
+
+  public static class ChessFirstMapper
        extends Mapper<Object, Text, Text, IntWritable>{
 
     private final static IntWritable one = new IntWritable(1);
@@ -33,6 +35,7 @@ public class ChessB {
       }
       String temp = mc.group();
       String whiteId = temp.substring(7, temp.length() - 1);
+
       // next search for the black user
       pt = Pattern.compile("Black \".*\"");
       mc = pt.matcher(input);
@@ -41,6 +44,7 @@ public class ChessB {
       }
       temp = mc.group();
       String blackId = temp.substring(7, temp.length() - 1);
+
       // now search for the result
       pt = Pattern.compile("Result \".*\"");
       mc = pt.matcher(input);
@@ -48,6 +52,10 @@ public class ChessB {
         return;
       }
       temp = mc.group();
+
+      // proceed to emit the results
+      // emits as: Player1id White win  1
+      //           Player2id Black win  1
       String winOrLose = temp.substring(8, temp.length() - 1);
       if (winOrLose.startsWith("0")) {
         // black wins
@@ -87,6 +95,7 @@ public class ChessB {
 
   public static class IntSumReducer
        extends Reducer<Text,IntWritable,Text,IntWritable> {
+
     private IntWritable result = new IntWritable();
 
     public void reduce(Text key, Iterable<IntWritable> values,
@@ -101,18 +110,114 @@ public class ChessB {
     }
   }
 
+  // second map-reduce classes
+
+  public static class ChessSecondMapper
+       extends Mapper<Object, Text, Text, Text>{
+
+    private Text keyT = new Text();
+    private Text valueT = new Text();
+
+    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+      String input = value.toString();
+      Scanner sc = new Scanner(input);
+      String userId = sc.next();
+      String color = sc.next();
+      String winOrLost = sc.next();
+      int count = sc.nextInt();
+
+      // now construct the key: userId + color
+      StringBuilder sb = new StringBuilder(userId);
+      sb.append(" ");
+      sb.append(color);
+      String emitKey = sb.toString();
+      // now construct the value: win + count
+      sb = new StringBuilder(winOrLost);
+      sb.append(" ");
+      sb.append(count);
+      String emitValue = sb.toString();
+
+      // emit now
+      keyT.set(emitKey);
+      valueT.set(emitValue);
+      context.write(keyT, valueT);
+    }
+  }
+
+  public static class ChessReducer
+       extends Reducer<Text,Text,Text,Text> {
+
+    private Text result = new Text();
+
+    public void reduce(Text key, Iterable<Text> values,
+                       Context context
+                       ) throws IOException, InterruptedException {
+      int numWin  = 0;
+      int numLose = 0;
+      int numDraw = 0;
+
+      for (Text val : values) {
+        Scanner sc = new Scanner(val.toString());
+        String winOrLost = sc.next();
+        int count = sc.nextInt();
+        if (winOrLost.equals("win")) {
+          numWin += count;
+        }
+        else if (winOrLost.equals("lose")) {
+          numLose += count;
+        }
+        else {
+          numDraw += count;
+        }
+      }
+
+      // now calculate the percentage
+      int numTotal = numWin + numLose + numDraw;
+      float perWin = (float)numWin / (float)numTotal;
+      float perLose = (float)numLose / (float)numTotal;
+      float perDraw = (float)numDraw / (float)numTotal;
+
+      // construct the output value
+      StringBuilder sb = new StringBuilder();
+      sb.append(perWin);
+      sb.append(" ");
+      sb.append(perLose);
+      sb.append(" ");
+      sb.append(perDraw);
+      String emitValue = sb.toString();
+
+      result.set(emitValue);
+      context.write(key, result);
+    }
+  }
+
   public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
-    conf.set("textinputformat.record.delimiter", "\n[Event");
-    Job job = Job.getInstance(conf, "chess result count");
-    job.setJarByClass(ChessB.class);
-    job.setMapperClass(ChessResultMapper.class);
-    job.setCombinerClass(IntSumReducer.class);
-    job.setReducerClass(IntSumReducer.class);
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(IntWritable.class);
-    FileInputFormat.addInputPath(job, new Path(args[0]));
-    FileOutputFormat.setOutputPath(job, new Path(args[1]));
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
+    // first map-reduce
+    Configuration conf1 = new Configuration();
+    conf1.set("textinputformat.record.delimiter", "\n[Event");
+    Job job1 = Job.getInstance(conf1, "chess first");
+    job1.setJarByClass(ChessB.class);
+    job1.setMapperClass(ChessFirstMapper.class);
+    job1.setCombinerClass(IntSumReducer.class);
+    job1.setReducerClass(IntSumReducer.class);
+    job1.setOutputKeyClass(Text.class);
+    job1.setOutputValueClass(IntWritable.class);
+    FileInputFormat.addInputPath(job1, new Path(args[0]));
+    FileOutputFormat.setOutputPath(job1, new Path(args[1]));
+    job1.waitForCompletion(true);
+
+    // second map-reduce
+    Configuration conf2 = new Configuration();
+    Job job2 = Job.getInstance(conf2, "chess second");
+    job2.setJarByClass(ChessB.class);
+    job2.setMapperClass(ChessSecondMapper.class);
+    job2.setReducerClass(ChessReducer.class);
+    job2.setOutputKeyClass(Text.class);
+    job2.setOutputValueClass(Text.class);
+    FileInputFormat.addInputPath(job2, new Path(args[1]));
+    FileOutputFormat.setOutputPath(job2, new Path(args[2]));
+    System.exit(job2.waitForCompletion(true) ? 0 : 1);
+
+
   }
 }
