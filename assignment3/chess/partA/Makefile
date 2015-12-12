@@ -1,5 +1,6 @@
 PROJECT_DIR    = /user/$(USER)/chessA/
 INPUT_DIR      = $(PROJECT_DIR)/input
+TEMP_DIR       = $(PROJECT_DIR)/temp
 OUTPUT_DIR     = $(PROJECT_DIR)/output
 CLASSPATH      = $(shell hadoop classpath)
 
@@ -12,14 +13,18 @@ default: clean
 	@echo "--- done ---"
 
 run: chessA.jar input
-	hadoop jar chessA.jar ChessA $(INPUT_DIR) $(OUTPUT_DIR)
+	hadoop jar chessA.jar ChessA $(INPUT_DIR) $(TEMP_DIR) $(OUTPUT_DIR)
 
 cat: 
 	hdfs dfs -cat $(OUTPUT_DIR)/*
 
+cat-temp: 
+	hdfs dfs -cat $(TEMP_DIR)/*
+
 dir:
 	hdfs dfs -test -e $(PROJECT_DIR) || hdfs dfs -mkdir $(PROJECT_DIR)
 	hdfs dfs -test -e $(INPUT_DIR) || hdfs dfs -mkdir $(INPUT_DIR)
+	hdfs dfs -rm -f -r $(TEMP_DIR)
 	hdfs dfs -rm -f -r $(OUTPUT_DIR)
 
 input: dir
@@ -28,6 +33,7 @@ input: dir
 
 clean-dir:
 	hdfs dfs -rm -f -r $(INPUT_DIR)
+	hdfs dfs -rm -f -r $(TEMP_DIR)
 	hdfs dfs -rm -f -r $(OUTPUT_DIR)
 	hdfs dfs -rm -r -f $(PROJECT_DIR)
 

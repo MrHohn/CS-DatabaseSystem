@@ -186,6 +186,7 @@ public class ChessB {
       sb.append(perDraw);
       String emitValue = sb.toString();
 
+      // now emitting
       result.set(emitValue);
       context.write(key, result);
     }
@@ -217,7 +218,5 @@ public class ChessB {
     FileInputFormat.addInputPath(job2, new Path(args[1]));
     FileOutputFormat.setOutputPath(job2, new Path(args[2]));
     System.exit(job2.waitForCompletion(true) ? 0 : 1);
-
-
   }
 }

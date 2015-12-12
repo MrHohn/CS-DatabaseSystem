@@ -1,5 +1,7 @@
 import java.io.IOException;
 import java.util.StringTokenizer;
+import java.util.Scanner;
+import java.lang.StringBuilder;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -52,17 +54,112 @@ public class ChessA {
     }
   }
 
+  // second map-reduce classes
+
+  public static class ChessSecondMapper
+       extends Mapper<Object, Text, Text, Text>{
+
+    // use the same key, let three records all goto one single reducer
+    private Text sameKey = new Text("1");
+
+    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+      // emit now
+      context.write(sameKey, value);
+    }
+  }
+
+  public static class ChessReducer
+       extends Reducer<Text,Text,Text,Text> {
+
+    private Text newKey = new Text();
+    private Text result = new Text();
+
+    public void reduce(Text key, Iterable<Text> values,
+                       Context context
+                       ) throws IOException, InterruptedException {
+      int numBlack = 0;
+      int numWhite = 0;
+      int numDraw  = 0;
+
+      for (Text val : values) {
+        Scanner sc = new Scanner(val.toString());
+        String winOrLost = sc.next();
+        int count = sc.nextInt();
+        if (winOrLost.equals("Black")) {
+          numBlack = count;
+        }
+        else if (winOrLost.equals("White")) {
+          numWhite = count;
+        }
+        else {
+          numDraw = count;
+        }
+      }
+
+      // now calculate the percentage
+      int numTotal = numBlack + numWhite + numDraw;
+      float perBlack = (float)numBlack / (float)numTotal;
+      float perWhite = (float)numWhite / (float)numTotal;
+      float perDraw = (float)numDraw / (float)numTotal;
+
+      // construct the output value
+      StringBuilder sb = new StringBuilder();
+      sb.append(numBlack);
+      sb.append(" ");
+      sb.append(perBlack);
+      String emitValue = sb.toString();
+      // now emitting black
+      newKey.set("Black");
+      result.set(emitValue);
+      context.write(newKey, result);
+
+      // construct the output value
+      sb = new StringBuilder();
+      sb.append(numWhite);
+      sb.append(" ");
+      sb.append(perWhite);
+      emitValue = sb.toString();
+      // now emitting black
+      newKey.set("White");
+      result.set(emitValue);
+      context.write(newKey, result);
+
+      // construct the output value
+      sb = new StringBuilder();
+      sb.append(numDraw);
+      sb.append(" ");
+      sb.append(perDraw);
+      emitValue = sb.toString();
+      // now emitting black
+      newKey.set("Draw");
+      result.set(emitValue);
+      context.write(newKey, result);
+    }
+  }
+
   public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
-    Job job = Job.getInstance(conf, "chess result count");
-    job.setJarByClass(ChessA.class);
-    job.setMapperClass(ChessResultMapper.class);
-    job.setCombinerClass(IntSumReducer.class);
-    job.setReducerClass(IntSumReducer.class);
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(IntWritable.class);
-    FileInputFormat.addInputPath(job, new Path(args[0]));
-    FileOutputFormat.setOutputPath(job, new Path(args[1]));
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
+    Configuration conf1 = new Configuration();
+    Job job1 = Job.getInstance(conf1, "chess first");
+    job1.setJarByClass(ChessA.class);
+    job1.setMapperClass(ChessResultMapper.class);
+    job1.setCombinerClass(IntSumReducer.class);
+    job1.setReducerClass(IntSumReducer.class);
+    job1.setOutputKeyClass(Text.class);
+    job1.setOutputValueClass(IntWritable.class);
+    FileInputFormat.addInputPath(job1, new Path(args[0]));
+    FileOutputFormat.setOutputPath(job1, new Path(args[1]));
+    job1.waitForCompletion(true);
+
+    // second map-reduce
+    Configuration conf2 = new Configuration();
+    Job job2 = Job.getInstance(conf2, "chess second");
+    job2.setJarByClass(ChessA.class);
+    job2.setMapperClass(ChessSecondMapper.class);
+    job2.setReducerClass(ChessReducer.class);
+    job2.setOutputKeyClass(Text.class);
+    job2.setOutputValueClass(Text.class);
+    FileInputFormat.addInputPath(job2, new Path(args[1]));
+    FileOutputFormat.setOutputPath(job2, new Path(args[2]));
+    System.exit(job2.waitForCompletion(true) ? 0 : 1);
   }
 }

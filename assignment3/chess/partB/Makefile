@@ -28,8 +28,8 @@ dir:
 	hdfs dfs -rm -f -r $(OUTPUT_DIR)
 
 input: dir
-	hdfs dfs -test -e $(INPUT_DIR)/test.pgn \
-	  || hdfs dfs -put ../../input/chess/test.pgn $(INPUT_DIR)/test.pgn
+	hdfs dfs -test -e $(INPUT_DIR)/ficsgamesdb_small_201502.pgn \
+	  || hdfs dfs -put ../../input/chess/ficsgamesdb_small_201502.pgn $(INPUT_DIR)/ficsgamesdb_small_201502.pgn
 
 clean-dir:
 	hdfs dfs -rm -f -r $(INPUT_DIR)
