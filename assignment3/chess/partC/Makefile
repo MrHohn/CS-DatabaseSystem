@@ -1,5 +1,5 @@
-PROJECT_DIR    = /user/$(USER)/chessC/
-INPUT_DIR      = $(PROJECT_DIR)/input
+PROJECT_DIR    = /user/$(USER)/chessC
+INPUT_DIR      = /user/$(USER)/input/chess
 TEMP_DIR       = $(PROJECT_DIR)/temp
 OUTPUT_DIR     = $(PROJECT_DIR)/output
 CLASSPATH      = $(shell hadoop classpath)
@@ -22,13 +22,17 @@ cat-temp:
 
 dir:
 	hdfs dfs -test -e $(PROJECT_DIR) || hdfs dfs -mkdir $(PROJECT_DIR)
-	hdfs dfs -test -e $(INPUT_DIR) || hdfs dfs -mkdir $(INPUT_DIR)
+	hdfs dfs -test -e $(INPUT_DIR) || hdfs dfs -mkdir -p $(INPUT_DIR)
 	hdfs dfs -rm -f -r $(TEMP_DIR)
 	hdfs dfs -rm -f -r $(OUTPUT_DIR)
 
 input: dir
+	hdfs dfs -test -e $(INPUT_DIR)/ficsgamesdb_small_201501.pgn \
+	  || hdfs dfs -put ../../input/chess/ficsgamesdb_small_201501.pgn $(INPUT_DIR)/ficsgamesdb_small_201501.pgn
 	hdfs dfs -test -e $(INPUT_DIR)/ficsgamesdb_small_201502.pgn \
 	  || hdfs dfs -put ../../input/chess/ficsgamesdb_small_201502.pgn $(INPUT_DIR)/ficsgamesdb_small_201502.pgn
+	hdfs dfs -test -e $(INPUT_DIR)/ficsgamesdb_small_201503.pgn \
+	  || hdfs dfs -put ../../input/chess/ficsgamesdb_small_201503.pgn $(INPUT_DIR)/ficsgamesdb_small_201503.pgn
 
 clean-dir:
 	hdfs dfs -rm -f -r $(INPUT_DIR)

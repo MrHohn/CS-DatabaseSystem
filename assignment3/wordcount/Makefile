@@ -1,5 +1,5 @@
-PROJECT_DIR    = /user/$(USER)/wordcount/
-INPUT_DIR      = $(PROJECT_DIR)/input
+PROJECT_DIR    = /user/$(USER)/wordcount
+INPUT_DIR      = /user/$(USER)/input/wordcount
 OUTPUT_DIR     = $(PROJECT_DIR)/output
 CLASSPATH      = $(shell hadoop classpath)
 
@@ -19,7 +19,7 @@ cat:
 
 dir:
 	hdfs dfs -test -e $(PROJECT_DIR) || hdfs dfs -mkdir $(PROJECT_DIR)
-	hdfs dfs -test -e $(INPUT_DIR) || hdfs dfs -mkdir $(INPUT_DIR)
+	hdfs dfs -test -e $(INPUT_DIR) || hdfs dfs -mkdir -p $(INPUT_DIR)
 	hdfs dfs -rm -f -r $(OUTPUT_DIR)
 
 input: dir
