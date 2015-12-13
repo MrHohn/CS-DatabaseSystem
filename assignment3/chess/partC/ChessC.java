@@ -2,6 +2,10 @@ import java.io.IOException;
 import java.util.StringTokenizer;
 import java.util.Scanner;
 import java.util.regex.Pattern;
+import java.util.Comparator;
+import java.util.PriorityQueue;
+import java.util.ArrayList;
+import java.lang.StringBuilder;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -15,7 +19,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class ChessC {
 
-  public static class ChessResultMapper
+  public static class ChessFirstMapper
        extends Mapper<Object, Text, Text, IntWritable>{
 
     private final static IntWritable one = new IntWritable(1);
@@ -49,17 +53,91 @@ public class ChessC {
     }
   }
 
+  // second map-reduce classes
+
+  public static class ChessSecondMapper
+       extends Mapper<Object, Text, ChessPairWritable, Text>{
+
+    public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
+      Scanner sc = new Scanner(value.toString());
+      // skip the number of steps
+      sc.next();
+      int count = sc.nextInt();
+      ChessPairWritable pair = new ChessPairWritable(count);
+      // emit now, set the count as secondary key for sorting purpose
+      context.write(pair, value);
+    }
+  }
+
+  public static class ChessSecondReducer
+       extends Reducer<ChessPairWritable,Text,Text,Text> {
+
+    private Text newKey = new Text();
+    private Text newValue = new Text();
+
+    public void reduce(ChessPairWritable key, Iterable<Text> values,
+                       Context context
+                       ) throws IOException, InterruptedException {
+      // define a container to store all inputs
+      ArrayList<String> container = new ArrayList<String>();
+      int totalCount = 0;
+
+      for (Text val : values) {
+        Scanner sc = new Scanner(val.toString());
+        // skip the number of steps
+        sc.nextInt();
+        int count = sc.nextInt();
+        totalCount += count;
+        container.add(val.toString());
+      }
+
+      // now emit all the value in order
+      for (int i = 0; i < container.size(); ++i) {
+        Scanner sc = new Scanner(container.get(i));
+        String step = sc.next();
+        int count = sc.nextInt();
+        // calculate the percentage
+        float perCount = (float)count / (float)totalCount * 100;
+        StringBuilder sb = new StringBuilder();
+        sb.append(perCount);
+        sb.append("%");
+        newKey.set(step);
+        newValue.set(sb.toString());
+        context.write(newKey, newValue);
+      }
+    }
+  }
+
   public static void main(String[] args) throws Exception {
-    Configuration conf = new Configuration();
-    Job job = Job.getInstance(conf, "chess result count");
-    job.setJarByClass(ChessC.class);
-    job.setMapperClass(ChessResultMapper.class);
-    job.setCombinerClass(IntSumReducer.class);
-    job.setReducerClass(IntSumReducer.class);
-    job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(IntWritable.class);
-    FileInputFormat.addInputPath(job, new Path(args[0]));
-    FileOutputFormat.setOutputPath(job, new Path(args[1]));
-    System.exit(job.waitForCompletion(true) ? 0 : 1);
+    // first map-reduce
+    Configuration conf1 = new Configuration();
+    Job job1 = Job.getInstance(conf1, "chess first");
+    job1.setJarByClass(ChessC.class);
+    job1.setMapperClass(ChessFirstMapper.class);
+    job1.setCombinerClass(IntSumReducer.class);
+    job1.setReducerClass(IntSumReducer.class);
+    job1.setOutputKeyClass(Text.class);
+    job1.setOutputValueClass(IntWritable.class);
+    FileInputFormat.addInputPath(job1, new Path(args[0]));
+    FileOutputFormat.setOutputPath(job1, new Path(args[1]));
+    job1.waitForCompletion(true);
+
+    // second map-reduce
+    Configuration conf2 = new Configuration();
+    Job job2 = Job.getInstance(conf2, "chess second");
+    job2.setJarByClass(ChessC.class);
+    job2.setMapperClass(ChessSecondMapper.class);
+    // self defined Partiioner, PairWritable and GroupingComparator
+    job2.setMapOutputKeyClass(ChessPairWritable.class);
+    job2.setMapOutputValueClass(Text.class);
+    job2.setPartitionerClass(ChessPairPartitioner.class);
+    job2.setSortComparatorClass(ChessPairSortComparator.class);
+    job2.setGroupingComparatorClass(ChessPairGroupingComparator.class);
+    job2.setReducerClass(ChessSecondReducer.class);
+    job2.setOutputKeyClass(Text.class);
+    job2.setOutputValueClass(Text.class);
+    FileInputFormat.addInputPath(job2, new Path(args[1]));
+    FileOutputFormat.setOutputPath(job2, new Path(args[2]));
+    System.exit(job2.waitForCompletion(true) ? 0 : 1);
   }
 }

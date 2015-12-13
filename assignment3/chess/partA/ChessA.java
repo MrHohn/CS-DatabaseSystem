@@ -15,7 +15,9 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class ChessA {
 
-  public static class ChessResultMapper
+  // first map-reduce classes
+
+  public static class ChessFirstMapper
        extends Mapper<Object, Text, Text, IntWritable>{
 
     private final static IntWritable one = new IntWritable(1);
@@ -68,7 +70,7 @@ public class ChessA {
     }
   }
 
-  public static class ChessReducer
+  public static class ChessSecondReducer
        extends Reducer<Text,Text,Text,Text> {
 
     private Text newKey = new Text();
@@ -138,10 +140,11 @@ public class ChessA {
   }
 
   public static void main(String[] args) throws Exception {
+    // first map-reduce
     Configuration conf1 = new Configuration();
     Job job1 = Job.getInstance(conf1, "chess first");
     job1.setJarByClass(ChessA.class);
-    job1.setMapperClass(ChessResultMapper.class);
+    job1.setMapperClass(ChessFirstMapper.class);
     job1.setCombinerClass(IntSumReducer.class);
     job1.setReducerClass(IntSumReducer.class);
     job1.setOutputKeyClass(Text.class);
@@ -155,7 +158,7 @@ public class ChessA {
     Job job2 = Job.getInstance(conf2, "chess second");
     job2.setJarByClass(ChessA.class);
     job2.setMapperClass(ChessSecondMapper.class);
-    job2.setReducerClass(ChessReducer.class);
+    job2.setReducerClass(ChessSecondReducer.class);
     job2.setOutputKeyClass(Text.class);
     job2.setOutputValueClass(Text.class);
     FileInputFormat.addInputPath(job2, new Path(args[1]));

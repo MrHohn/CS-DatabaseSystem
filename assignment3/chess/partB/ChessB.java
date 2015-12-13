@@ -144,7 +144,7 @@ public class ChessB {
     }
   }
 
-  public static class ChessReducer
+  public static class ChessSecondReducer
        extends Reducer<Text,Text,Text,Text> {
 
     private Text result = new Text();
@@ -195,6 +195,7 @@ public class ChessB {
   public static void main(String[] args) throws Exception {
     // first map-reduce
     Configuration conf1 = new Configuration();
+    // need to change the delimiter since a mapper need a whole event
     conf1.set("textinputformat.record.delimiter", "\n[Event");
     Job job1 = Job.getInstance(conf1, "chess first");
     job1.setJarByClass(ChessB.class);
@@ -212,7 +213,7 @@ public class ChessB {
     Job job2 = Job.getInstance(conf2, "chess second");
     job2.setJarByClass(ChessB.class);
     job2.setMapperClass(ChessSecondMapper.class);
-    job2.setReducerClass(ChessReducer.class);
+    job2.setReducerClass(ChessSecondReducer.class);
     job2.setOutputKeyClass(Text.class);
     job2.setOutputValueClass(Text.class);
     FileInputFormat.addInputPath(job2, new Path(args[1]));
