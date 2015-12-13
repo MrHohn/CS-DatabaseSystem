@@ -132,7 +132,7 @@ public class ChessB {
       sb.append(" ");
       sb.append(color);
       String emitKey = sb.toString();
-      // now construct the value: win + count
+      // now construct the value: winOrLost + count
       sb = new StringBuilder(winOrLost);
       sb.append(" ");
       sb.append(count);
