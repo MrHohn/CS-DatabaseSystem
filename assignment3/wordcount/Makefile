@@ -6,8 +6,7 @@ CLASSPATH      = $(shell hadoop classpath)
 default: clean
 	@echo "--- now compile the programs and package to jar file ---"
 	mkdir -p classes
-	javac -classpath $(CLASSPATH) -Xlint:deprecation \
- 	      -d classes *.java
+	hadoop com.sun.tools.javac.Main -d classes *.java
 	jar -cvf wordcount.jar -C classes .
 	@echo "--- done ---"
 

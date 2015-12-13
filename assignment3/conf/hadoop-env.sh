@@ -23,7 +23,7 @@
 
 # The java implementation to use.
 # export JAVA_HOME=${JAVA_HOME}
-export JAVA_HOME=/usr/lib/jvm/java-8-oracle
+export JAVA_HOME=/usr/lib/jvm/java-7-oracle
 export HADOOP_HOME=/usr/local/hadoop
 export HADOOP_COMMON_LIB_NATIVE_DIR=$HADOOP_HOME/lib/native
 export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"
@@ -45,7 +45,7 @@ for f in $HADOOP_HOME/contrib/capacity-scheduler/*.jar; do
   fi
 done
 
-export HADOOP_CLASSPATH=/usr/lib/jvm/java-8-oracle/lib/tools.jar
+export HADOOP_CLASSPATH=/usr/lib/jvm/java-7-oracle/lib/tools.jar
 
 # The maximum amount of heap to use, in MB. Default is 1000.
 #export HADOOP_HEAPSIZE=
