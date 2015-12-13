@@ -4,6 +4,7 @@ import java.util.Scanner;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.lang.StringBuilder;
+import java.text.DecimalFormat;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -147,7 +148,8 @@ public class ChessB {
   public static class ChessSecondReducer
        extends Reducer<Text,Text,Text,Text> {
 
-    private Text result = new Text();
+    private Text newKey = new Text();
+    private Text newValue = new Text();
 
     public void reduce(Text key, Iterable<Text> values,
                        Context context
@@ -177,18 +179,23 @@ public class ChessB {
       float perLose = (float)numLose / (float)numTotal;
       float perDraw = (float)numDraw / (float)numTotal;
 
+      DecimalFormat df = new DecimalFormat();
+      df.setMaximumFractionDigits(4);
       // construct the output value
       StringBuilder sb = new StringBuilder();
-      sb.append(perWin);
+      sb.append(key.toString());
       sb.append(" ");
-      sb.append(perLose);
+      sb.append(df.format(perWin));
       sb.append(" ");
-      sb.append(perDraw);
+      sb.append(df.format(perLose));
+      sb.append(" ");
+      sb.append(df.format(perDraw));
       String emitValue = sb.toString();
 
       // now emitting
-      result.set(emitValue);
-      context.write(key, result);
+      newKey.set(emitValue);
+      newValue.set("");
+      context.write(newKey, newValue);
     }
   }
 

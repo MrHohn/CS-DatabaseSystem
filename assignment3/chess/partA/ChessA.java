@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.util.StringTokenizer;
 import java.util.Scanner;
 import java.lang.StringBuilder;
+import java.text.DecimalFormat;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -74,7 +75,7 @@ public class ChessA {
        extends Reducer<Text,Text,Text,Text> {
 
     private Text newKey = new Text();
-    private Text result = new Text();
+    private Text newValue = new Text();
 
     public void reduce(Text key, Iterable<Text> values,
                        Context context
@@ -104,38 +105,40 @@ public class ChessA {
       float perWhite = (float)numWhite / (float)numTotal;
       float perDraw = (float)numDraw / (float)numTotal;
 
+      DecimalFormat df = new DecimalFormat();
+      df.setMaximumFractionDigits(4);
       // construct the output value
       StringBuilder sb = new StringBuilder();
       sb.append(numBlack);
       sb.append(" ");
-      sb.append(perBlack);
+      sb.append(df.format(perBlack));
       String emitValue = sb.toString();
       // now emitting black
       newKey.set("Black");
-      result.set(emitValue);
-      context.write(newKey, result);
+      newValue.set(emitValue);
+      context.write(newKey, newValue);
 
       // construct the output value
       sb = new StringBuilder();
       sb.append(numWhite);
       sb.append(" ");
-      sb.append(perWhite);
+      sb.append(df.format(perWhite));
       emitValue = sb.toString();
       // now emitting black
       newKey.set("White");
-      result.set(emitValue);
-      context.write(newKey, result);
+      newValue.set(emitValue);
+      context.write(newKey, newValue);
 
       // construct the output value
       sb = new StringBuilder();
       sb.append(numDraw);
       sb.append(" ");
-      sb.append(perDraw);
+      sb.append(df.format(perDraw));
       emitValue = sb.toString();
       // now emitting black
       newKey.set("Draw");
-      result.set(emitValue);
-      context.write(newKey, result);
+      newValue.set(emitValue);
+      context.write(newKey, newValue);
     }
   }
 

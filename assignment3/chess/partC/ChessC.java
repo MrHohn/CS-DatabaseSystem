@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.PriorityQueue;
 import java.util.ArrayList;
 import java.lang.StringBuilder;
+import java.text.DecimalFormat;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -98,8 +99,12 @@ public class ChessC {
         int count = sc.nextInt();
         // calculate the percentage
         float perCount = (float)count / (float)totalCount * 100;
+
+        DecimalFormat df = new DecimalFormat();
+        df.setMaximumFractionDigits(4);
+        // construct the output
         StringBuilder sb = new StringBuilder();
-        sb.append(perCount);
+        sb.append(df.format(perCount));
         sb.append("%");
         newKey.set(step);
         newValue.set(sb.toString());
